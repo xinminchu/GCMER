@@ -1,0 +1,30 @@
+library(igraph)
+library(optrees)
+library(rlemon)
+
+## Figure 5 from Gomory and Hu (1961)
+edges <- cbind(	e1 = c(1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 5),
+                e2 = c(2, 6, 3, 5, 6, 4, 5, 6, 5, 6, 6),
+                w = c(10,  8,  4,  2,  3,  5,  4,  2,  7,  2,  3)
+)
+
+## Min Cut Tree with package 'optrees' (incorrect)
+tree1 <- getMinimumCutTree(1:6, edges)
+
+## Min Cut Tree with package 'rlemon' (correct)
+tree2 <- AllPairsMinCut(arcSources = edges[,1], arcTargets = edges[,2],
+                        arcWeights = edges[,3], numNodes = 6)
+
+## Plot original graph and correct min cut tree
+g <- graph_from_edgelist(edges[,1:2], directed = FALSE)
+treeasgraph <- graph_from_edgelist(
+  cbind(1:5, tree2$predecessors[1:5]), directed = FALSE)
+dev.new()
+par(mfrow = c(1,2))
+plot(g, vertex.label = 1:6, edge.label = edges[,3])
+title("Original Graph")
+plot(treeasgraph, vertex.label = 1:6, edge.label = tree2$weights[1:5])
+title("Minimum Cut Tree (Correct)")
+
+str(tree2)
+tree2
