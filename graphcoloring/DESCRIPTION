@@ -1,0 +1,30 @@
+Package: graphcoloring
+Title: Graph Coloring Algorithms for Tidygraph
+Version: 0.1.0
+Authors@R: c(
+    person(given = "Forest",
+           family = "Fang",
+           role = c("aut", "cre"),
+           email = "forest.fang@outlook.com",
+           comment = c(ORCID = "0000-0002-9180-1270")
+    ),
+    person("Brian", "Crites", 
+      role = c("aut", "cph"),
+      comment = "Author of included GraphColoring code"
+    )
+  )
+Description: A collection of graph coloring algorithms for coloring vertices of 
+    a graph such that no two adjacent vertices share the same color. The algorithms
+    are included via the embedded 'GraphColoring' C++ library, <https://github.com/brrcrites/GraphColoring>.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+LinkingTo: Rcpp
+Imports: 
+    Rcpp,
+SystemRequirements: GNU make
+NeedsCompilation: yes
+URL: 
+  https://github.com/saurfang/graphcoloring,
+  https://github.com/brrcrites/GraphColoring
+BugReports: https://github.com/saurfang/graphcoloring/issues
