@@ -16,7 +16,7 @@
 
 
 # Inputs:
-# D:	array (n,n,p) (n = total number of records, number of features)
+# D:	array (n,n,p) (n = total number of records, p = number of features)
 # block: integer vector of length n (block indicator)
 
 # Output:
