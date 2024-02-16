@@ -26,6 +26,7 @@ mqcpp <- function(n, edges, gamma, ub = NULL)
   pairs <- combn(n, 2)
   # indexing: y (ub-vector), x (ub x n matrix), w (ub x npairs)
   obj <- numeric(nvars)
+
   obj[1:ub] <- 1
 
   ## Define constraints
@@ -57,34 +58,34 @@ mqcpp <- function(n, edges, gamma, ub = NULL)
   idxrow <- (csumcnstr[2]+1):csumcnstr[3]
   count <- 0
   for (i in 1:ub) {
-    for (u in 1:(n-1)){
-      for (v in (u+1):n) {
+    for (v in 2:n){
+      for (u in (1:(v-1))) {
         count <- count + 1
         A[idxrow[count], c(idxx[i, u], idxx[i, v], idxw[i, which(pairs[1,] == u & pairs[2, ] == v)])] <- c(1, 1, -1)
       }
     }
   }
 
-  # Constraints (7) w_iuv <= x_iu
+  # Constraints (7) w_iuv - x_iu <= 0
   idxrow <- (csumcnstr[3]+1):csumcnstr[4]
   count <- 0
   for (i in 1:ub) {
-    for (u in 1:(n-1)){
-      for (v in (u+1):n) {
+    for (v in 2:n){
+      for (u in (1:(v-1))) {
         count <- count + 1
-        A[idxrow[count], c(idxx[i, u], idxw[i, which(pairs[1,] == u & pairs[2, ] == v)])] <- c(1, -1)
+        A[idxrow[count], c(idxx[i, u], idxw[i, which(pairs[1,] == u & pairs[2, ] == v)])] <- c(-1, 1)
       }
     }
   }
 
-  # Constraints (8) w_iuv <= x_iv
+  # Constraints (8) w_iuv - x_iv <= 0
   idxrow <- (csumcnstr[4]+1):csumcnstr[5]
   count <- 0
   for (i in 1:ub) {
-    for (u in 1:(n-1)){
-      for (v in (u+1):n) {
+    for (v in 2:n){
+      for (u in (1:(v-1))) {
         count <- count + 1
-        A[idxrow[count], c(idxx[i, v], idxw[i, which(pairs[1,] == u & pairs[2, ] == v)])] <- c(1, -1)
+        A[idxrow[count], c(idxx[i, v], idxw[i, which(pairs[1,] == u & pairs[2, ] == v)])] <- c(-1, 1)
       }
     }
   }
@@ -92,11 +93,13 @@ mqcpp <- function(n, edges, gamma, ub = NULL)
 
   # Constraints (9) gamma * sum_{u<v} w_iuv - sum_{u<v, uv \in E} w_iuv <= 0
   idxrow <- (csumcnstr[5]+1):csumcnstr[6]
+
   for (i in 1:ub) {
-    for (u in 1:(n-1)){
-      for (v in (u+1):n) {
+    for (v in 2:n){
+      for (u in (1:(v-1))) {
         A[idxrow[i], idxw[i, which(pairs[1,] == u & pairs[2, ] == v)]] <-
-          ifelse(sum(edges[,1] == u & edges[,2] == v) == 1, -1, gamma)
+          ifelse(sum(edges[,1] == u & edges[,2] == v) == 1, (gamma-1), gamma)
+
       }
     }
   }
@@ -108,8 +111,6 @@ mqcpp <- function(n, edges, gamma, ub = NULL)
   }
 
 
-
-
   ## Run GUROBI
   model <- list(A = A, obj = obj,
                 modelsense = "min",
@@ -117,6 +118,7 @@ mqcpp <- function(n, edges, gamma, ub = NULL)
                 sense = c(rep('=', n), rep('<', (totcnstr-n))),
                 rhs = rep(c(1,0,1,0,0,0,0), ncnstr)
                 )
+  require(gurobi)
   gurobi(model)
 
 }
