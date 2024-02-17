@@ -54,7 +54,6 @@ mqcpp <- function(edges, gamma, n = NULL, ub = NULL)
   x <- matrix((ny+1):(ny+nx), ub, n)
   w <- matrix((ny+nx+1):nvars, ub, npairs)
 
-
   # Constraints (4) in paper sum_1:ub (x_iv) = 1
   Atmp <- matrix(0, n, nvars)
   for (v in 1:n)
@@ -74,7 +73,7 @@ mqcpp <- function(edges, gamma, n = NULL, ub = NULL)
   Atmp <- array(0, c(ub, npairs, nvars))
   for (i in 1:ub) {
     for (uv in 1:npairs) {
-    	  u <- pairs[uv,2]
+    	  u <- pairs[uv,1]
     	  v <- pairs[uv,2]
       Atmp[i, uv, c(x[i,u], x[i,v], w[i, uv])] <- c(1, 1, -1)
     }
@@ -99,9 +98,10 @@ mqcpp <- function(edges, gamma, n = NULL, ub = NULL)
   
   # Constraints (9) gamma * sum_{u<v} w_iuv - sum_{u<v, uv \in E} w_iuv <= 0
   Atmp <- matrix(0, ub, nvars)
-  edgesint <- (n-1) * edges[,1] + edges[,2]
-  pairsint <- (n-1) * pairs[,1] + pairs[,2]
-  idxedges <- match(edgesint, pairsint)
+  edgeschar <- paste(edges[,1], edges[,2], sep = ".")
+  pairschar <- paste(pairs[,1], pairs[,2], sep = ".")
+  idxedges <- match(edgeschar, pairschar)
+  # browser()
   for (i in 1:ub) {
     Atmp[i,w[i,]] <- gamma
     Atmp[i,w[i,idxedges]] <- gamma - 1
@@ -114,7 +114,8 @@ mqcpp <- function(edges, gamma, n = NULL, ub = NULL)
     Atmp[i, y[c(i,i+1)]] <- c(-1, 1)
   }
   A[idxrow[[7]],] <- Atmp
-  rm(Atmp)
+  
+  rm(Atmp, edgeschar, pairschar)
 
 
 
@@ -125,7 +126,22 @@ mqcpp <- function(edges, gamma, n = NULL, ub = NULL)
                 sense = rep(c("=", "<"), c(n, totcnstr-n)),
                 rhs = rep(c(1,0,1,0,0,0,0), ncnstr)
                 )
-  gurobi(model)
+  params <- list(OutputFlag = 0)
+  sol <- gurobi(model, params)
+  if (sol$status == "INFEASIBLE") {
+  	warning(sol$status)
+  	return(list(qc = NULL, nqc = NULL, dens = NULL))
+  }
+  y <- sol$x[y]
+  nqc <- sum(y) # number of quasi-cliques
+  x <- matrix(sol$x[x], ub, n)
+  idx <- arrayInd(which(x == 1), dim(x))
+  qc <- idx[,1] # integer vector indicating quasi-clique for each vertex
+  w <- matrix(sol$x[w], dim(w))
+  nedgeqc <- rowSums(w[1:nqc, idxedges, drop=FALSE])
+  nvertqc <- rowSums(x[1:nqc,, drop=FALSE]) 
+  dens <-  nedgeqc / choose(nvertqc,2) # quasi-clique density
+  list(qc = qc, nqc = nqc, dens = dens) 
 
 }
 
@@ -150,13 +166,21 @@ mqcpp <- function(edges, gamma, n = NULL, ub = NULL)
 # plot(g, main = "Coxeter Graph")
 #
 # g <- graph("Zachary") # Social network of friendships between 34 members of
-# #a karate club at a US university in the 1970s.
+# a karate club at a US university in the 1970s.
 # plot(g, main = "Zachary Graph")
-#
+
 # edges <- as_edgelist(g)
-# n <- nrow(edges)
+ # n <- nrow(edges)
 #
 # system.time(
-#   test <- mqcpp(n, edges, gamma = 0.4, ub = NULL)
+#   test <- mqcpp(n, edges, gamma = 0.3, ub = NULL)
 # )
 #
+
+
+## Example 2 (Melo et al, 2023)
+# edges <- matrix(c(1,2, 1,5, 2,3, 3,4, 3,5, 4,5, 5,6, 5,8, 5,9,
+  # 6,7, 7,8, 8,9), ncol = 2, byrow = TRUE)
+# plot(graph_from_edgelist(edges, FALSE))  
+# mqcpp(edges, gamma = .51)
+
