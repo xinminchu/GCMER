@@ -2,6 +2,7 @@
 
 rm(list = ls())
 library(stringdist)
+require(quadprog)
 
 data.dir <- "C://Users//xinmi//GCMER//Affiliation//" #XC
 aff <- read.csv(file.path(data.dir, "clean_affiliations_final.csv"))
@@ -10,6 +11,82 @@ aff[1:30,]
 #source("C:/Users/xinmi/GCMER/R/distance.calc.R")
 source("C:/Users/xinmi/GCMER/R/learn.metric.R")
 
+
+
+# manually label the sampled 100 rows
+data.dir <- "C://Users//xinmi//GCMER//Affiliation//" #XC
+mapping.aff <- read.csv(file.path(data.dir, "affiliationstrings_mapping.csv"))
+
+# Label the whole affiliation dataset
+label <- integer(nrow(aff))
+count <- 1
+for(i in 1:nrow(aff)){
+  if(label[i] == 0){
+    label[i] <- count
+    mp <- intersect(mapping.aff[mapping.aff[, 1] == aff[i, 1], 2], aff[, 1])
+    idx <- which(aff[,1] %in% mp)
+    label[idx[idx > i]] <- count
+    count <- count + 1
+  }else{
+    i <- i + 1
+  }
+
+}
+length(label)
+
+length(unique(label))
+
+
+# wrap up
+samplesize <- 100
+data <- aff
+method <- "lv"
+iters <- 100
+iter <- 1
+
+iter.learn.metric <- function(samplesize, data, label, method = "lv", iters = 500){
+  w <- matrix(, ncol = 2, nrow = iters)
+  for(iter in 1: iters){
+    idx <- sample(nrow(data), samplesize)
+    #block <- as.vector(data$label)
+    ## Metric learning
+    samples <- data[idx, -c(1,2)]
+    n <- samplesize
+    p <- ncol(samples)
+    samples[is.na(samples)] <- ""
+
+    sim.list <- vector("list", p)
+
+    for(i in 1:p){
+      sim.list[[i]] <- stringsimmatrix(samples[, i], method = method)
+    }
+
+    block <- label[idx]
+
+    sim.vec <- unlist(sim.list)
+    sim.array <- array(sim.vec, dim = c(n, n, p))
+    opt.metric <- learn.metric(sim.array, block)
+    opt.metric2 <- learn.metric2(sim.array, block)
+
+    w[iter,1] <- which.max(opt.metric$w)
+    w[iter,2] <- which.max(opt.metric2$w)
+  }
+  return(w)
+
+}
+
+test <- iter.learn.metric(samplesize = 100, data = aff, label = label)
+# Error message:
+#Error in solve.QP(V, dvec, Amat, bvec, meq = 1) :
+#  matrix D in quadratic function is not positive definite!
+
+
+
+
+
+#####################################
+# Following is one run
+####################################
 
 sampled100 <- read.csv(file.path(data.dir, "labeled100.csv"))
 head(sampled100)
@@ -45,7 +122,7 @@ opt.metric <- learn.metric(sim.array, block)
 
 opt.metric$w
 
-require(quadprog)
+
 opt.metric2 <- learn.metric2(sim.array, block)
 
 opt.metric2$w
@@ -83,8 +160,9 @@ names(sampled100)[o]
 #[1] "Name1"   "Country" "Street1" "Name2"   "Name3"   "Zipcode" "Street2" "State"   "City"
 
 
+################
 # Use 'learn.metric2' and column 'Name1' for whole affiliation data
-
+################
 
 
 system.time(
@@ -127,6 +205,8 @@ coloring <- graph_coloring_greedy(adj.list, "lf")
 
 get.chromatic(coloring)
 is.valid.coloring(coloring, adjmat = g)
+
+
 
 
 

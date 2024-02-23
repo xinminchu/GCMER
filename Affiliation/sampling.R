@@ -43,3 +43,23 @@ label
 truth <- cbind(sampled100, label)
 head(truth, 10)
 write.csv(truth, file = file.path(data.dir, "labeled100.csv"))
+
+
+# Label the whole affiliation dataset
+label <- integer(nrow(aff))
+count <- 1
+for(i in 1:nrow(aff)){
+  if(label[i] == 0){
+    label[i] <- count
+    mp <- intersect(mapping.aff[mapping.aff[, 1] == aff[i, 1], 2], aff[, 1])
+    idx <- which(aff[,1] %in% mp)
+    label[idx[idx > i]] <- count
+    count <- count + 1
+  }else{
+    i <- i + 1
+  }
+
+}
+length(label)
+
+length(unique(label))
