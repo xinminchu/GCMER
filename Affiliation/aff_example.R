@@ -3,37 +3,100 @@
 rm(list = ls())
 library(stringdist)
 
-data.dir <- "D:/GitHub/Data-Analytics-Lab-Prof.Degras/EntityResolution/MoreCode/data analysis/affiliation/" # for Xinmin
-data <- read.csv(file.path(data.dir, "new.clean_affiliations.csv"))
-data[1:30,]
+data.dir <- "C://Users//xinmi//GCMER//Affiliation//" #XC
+aff <- read.csv(file.path(data.dir, "clean_affiliations_final.csv"))
+aff[1:30,]
 
-source("C:/Users/xinmi/GCMER/R/distance.calc.R")
+#source("C:/Users/xinmi/GCMER/R/distance.calc.R")
+source("C:/Users/xinmi/GCMER/R/learn.metric.R")
 
+
+data.dir <- "C://Users//xinmi//GCMER//" #XC
+sampled100 <- read.csv(file.path(data.dir, "labeled100.csv"))
+head(sampled100)
+
+names(sampled100)
+#[1] "ID"      "Name1"   "Name2"   "Name3"   "Street1" "Street2" "City"    "State"   "Zipcode" "Country"
+
+block <- as.vector(sampled100$label)
 ## Metric learning
-# Take 100 rows randomly
-#s100 <- sample(nrow(data), 100, replace = FALSE)
+sampled100 <- sampled100[, -c(1,2, ncol(sampled100))]
+n <- nrow(sampled100)
+p <- ncol(sampled100)
+sampled100[is.na(sampled100)] <- ""
 
-# set.seed(2023)
-# strt <- sample(nrow(data)-101, 1)
+sim.sampled.aff <- vector("list", (ncol(sampled100)))
 
-strt <- 978
-idx <- strt:(strt+100)
-name <- data[data$ID %in% data[idx, 1], 2]
-
-data[idx,]
-write.csv(data[idx,], file = file.path(data.dir, "sample100.csv"))
-head(data[idx,], 10)
-
-# manually label the sampled 100 rows
-
-labeled.data <- read.csv(file.path(data.dir, "labeled.sample100.csv"))
-labeled.data[,"Entity"]
-head(labeled.data, 10)
-
-truth <- list(vector("list", max(labeled.data$Entity)))
-for(i in 1:max(labeled.data$Entity)){
-  truth[[i]] <- which(labeled.data$Entity == i)
+for(i in 1:ncol(sampled100)){
+  sim.sampled.aff[[i]] <- stringsimmatrix(sampled100[, i], method = "lv")
 }
+
+
+# Inputs:
+# D:	array (n,n,p) (n = total number of records, p = number of features)
+# block: integer vector of length n (block indicator)
+
+# Output:
+# weights w
+# matrix D' such that objective = || D' w ||^2
+sim.vec <- unlist(sim.sampled.aff)
+sim.array <- array(sim.vec, dim = c(n, n, p))
+
+opt.metric <- learn.metric(sim.array, block)
+
+opt.metric$w
+
+#[1] -0.154681141 -0.006114618  0.084726794 -0.354531724  0.780312799
+# 0.034014521  0.008176876 -0.481298880 0.037476091
+
+o <- order(opt.metric$w, decreasing = TRUE) #5 3 9 6 7 2 1 4 8
+names(sampled100)[o]
+#[1] "Street2" "Name3"   "Country" "City"    "State"   "Name2"   "Name1"   "Street1" "Zipcode"
+
+
+# The 5th column is choosen
+names(sampled100)[5] # Street2 ?? not make sense
+sampled100[,5]
+
+# How about the sencond largest 3rd column?
+names(sampled100)[3] # Names3
+sampled100[,3]
+
+#By my guess before metric learning, I guess the important feature could be "Name1"
+names(sampled100)[1]
+opt.metric$w[1]
+
+# absolute value
+o <- order(abs(opt.metric$w), decreasing = TRUE) #5 8 4 1 3 9 6 7 2
+names(sampled100)[o]
+#[1] "Street2" "Zipcode" "Street1" "Name1"   "Name3"   "Country" "City"    "State"   "Name2"
+
+
+
+
+#####################################################################
+# generate features combination choose(2:10, k), k = 2:9
+idx <- t(combn(2:10,2))
+comb.list <- lapply(2:9, function(k) combn(2:10, k, simplify = FALSE))
+comb.list <- do.call(c, comb.list)
+
+s.mat.aff <- vector("list", length(comb.list))
+
+for(i in 1:length(comb.list)){
+  idx <- comb.list[[i]]
+  features <- apply(sample100[,idx], 1, function(row) paste(row, collapse=" "))
+  s.mat.aff[[i]] <- stringsimmatrix(features, method = "lv")
+}
+
+str(s.mat.aff)
+summary.sim.mat <- sapply(s.mat.aff, function(obj) c(summary(as.vector(obj[upper.tri(obj, diag = FALSE)]))))
+summary.sim.mat <- t(summary.sim.mat)
+dim(summary.sim.mat)
+
+summary.sim.mat[,5]
+
+
+# Blocking
 
 
 get.blocks <- function(dat, features, size=0.5, thres=0.25){
