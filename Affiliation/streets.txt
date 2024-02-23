@@ -1,8 +1,0 @@
-avenue
-bldg
-building
-p.o. box
-road
-room
-street
-suite
