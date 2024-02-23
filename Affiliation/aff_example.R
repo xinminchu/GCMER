@@ -11,7 +11,6 @@ aff[1:30,]
 source("C:/Users/xinmi/GCMER/R/learn.metric.R")
 
 
-data.dir <- "C://Users//xinmi//GCMER//" #XC
 sampled100 <- read.csv(file.path(data.dir, "labeled100.csv"))
 head(sampled100)
 
@@ -46,6 +45,11 @@ opt.metric <- learn.metric(sim.array, block)
 
 opt.metric$w
 
+require(quadprog)
+opt.metric2 <- learn.metric2(sim.array, block)
+
+opt.metric2$w
+
 #[1] -0.154681141 -0.006114618  0.084726794 -0.354531724  0.780312799
 # 0.034014521  0.008176876 -0.481298880 0.037476091
 
@@ -53,6 +57,9 @@ o <- order(opt.metric$w, decreasing = TRUE) #5 3 9 6 7 2 1 4 8
 names(sampled100)[o]
 #[1] "Street2" "Name3"   "Country" "City"    "State"   "Name2"   "Name1"   "Street1" "Zipcode"
 
+o <- order(opt.metric2$w, decreasing = TRUE) #1 9 4 2 3 5 6 7 8
+names(sampled100)[o]
+#[1] "Name1"   "Country" "Street1" "Name2"   "Name3"   "Street2" "City"    "State"   "Zipcode"
 
 # The 5th column is choosen
 names(sampled100)[5] # Street2 ?? not make sense
@@ -70,6 +77,56 @@ opt.metric$w[1]
 o <- order(abs(opt.metric$w), decreasing = TRUE) #5 8 4 1 3 9 6 7 2
 names(sampled100)[o]
 #[1] "Street2" "Zipcode" "Street1" "Name1"   "Name3"   "Country" "City"    "State"   "Name2"
+
+o <- order(abs(opt.metric2$w), decreasing = TRUE) #1 9 4 2 3 8 5 7 6
+names(sampled100)[o]
+#[1] "Name1"   "Country" "Street1" "Name2"   "Name3"   "Zipcode" "Street2" "State"   "City"
+
+
+# Use 'learn.metric2' and column 'Name1' for whole affiliation data
+
+
+
+system.time(
+  sim.aff <- stringsimmatrix(aff$Name1, method = "lv")
+)
+
+#user  system elapsed
+#4.53    0.03    1.66
+
+str(sim.aff)
+
+## Graph coloring
+g <- sim.aff
+threshold <- as.numeric(quantile(g, 0.75)) # third quantile as threshold
+## Binarize graph if necessary
+if (!all(g %in% c(0, 1))) g <- (g >= threshold)
+g[1:10, 1:20]
+
+diag(g) <- 0
+
+## 4. Graph coloring
+# Graph coloring on complement graph from dissimilarity matrix
+# with different methods
+## Convert graph to adjacency list in view of graph coloring
+code.dir <- "C:/Users/xinmi/GCMER/R"#XM
+source(file.path(code.dir, "graph.conversion.R"))
+source(file.path(code.dir, "graph_coloring_greedy.R"))
+source(file.path(code.dir, "graph_coloring_rlf.R"))
+source(file.path(code.dir, "graph.coloring.R"))
+source(file.path(code.dir, "helpers.R"))
+
+adj.list <- adjmat2list(g)
+edges <- which(g == 1, TRUE)
+edges <- edges[edges[,1] < edges[,2]]
+#gg <- make_undirected_graph(edges)
+
+## Perform the coloring with various methods - greedy + largest first for example
+
+coloring <- graph_coloring_greedy(adj.list, "lf")
+
+get.chromatic(coloring)
+is.valid.coloring(coloring, adjmat = g)
 
 
 
