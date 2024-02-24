@@ -39,7 +39,8 @@ for (i in 1:nblock) {
 }
 Dmat <- matrix(unlist(Dlist), ncol = p)
 svdDmat <- svd(Dmat)
-w <- svdDmat$v[,p]
+w <- svdDmat$v[,1] #w <- svdDmat$v[,p] Question: is this p correct? out of bound
+
 return(list(D = Dmat, w = w))
 }
 
@@ -68,20 +69,36 @@ learn.metric2 <- function(D, block)
 
 
 
-  # use funtion solve.QP
+  # use function solve.QP
   # to minimize ||D'w||^2 = w'DD'w = w'Vw
   V <- crossprod(Dmat)
   Amat <- cbind(rep(1,p), diag(1,p))
   # sum weights = 1, all weights >= 0
   dvec <- rep(0, p)
   bvec <- c(1, rep(0,p))
-
-  sol <- solve.QP(V, dvec, Amat, bvec, meq=1)
-  w <- sol$solution
+  if(is.positive.definite(V)){
+    sol <- solve.QP(V, dvec, Amat, bvec, meq=1)
+    w <- sol$solution
+  }else{
+    w <- rep(0,p)
+  }
 
   return(list(D = Dmat, w = w))
 
 }
+
+
+
+# Check if the matrix is positive definite using chol()
+is.positive.definite <- function(mat) {
+  tryCatch({
+    chol(mat)
+    TRUE # If chol() succeeds, the matrix is positive definite
+  }, error=function(e) {
+    FALSE # If an error occurs, the matrix is not positive definite
+  })
+}
+
 
 
 # A^T

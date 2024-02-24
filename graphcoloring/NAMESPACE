@@ -1,8 +1,0 @@
-export(graph_coloring_dsatur)
-export(graph_coloring_hybrid_dsatur_tabucol)
-export(graph_coloring_hybrid_lmxrlf_tabucol)
-export(graph_coloring_lmxrlf)
-export(graph_coloring_msc)
-export(graph_coloring_tabucol)
-importFrom(Rcpp,sourceCpp)
-useDynLib(graphcoloring, .registration = TRUE)

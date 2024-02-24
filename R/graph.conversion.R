@@ -16,7 +16,7 @@
 adjmat2list <- function(mat, threshold = mean(mat))
 {
   stopifnot(is.matrix(mat))
-  stopifnot(identical(rownames(mat), colnames(mat)))
+  #stopifnot(identical(rownames(mat), colnames(mat)))
   stopifnot(is.numeric(mat[1]) || is.logical(mat[1]))
   stopifnot(nrow(mat) == ncol(mat))
   stopifnot(all(mat == t(mat)))

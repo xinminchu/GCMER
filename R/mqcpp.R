@@ -8,12 +8,22 @@
 # 3.1 Standard formulation
 
 
-mqcpp <- function(n, edges, gamma, ub = NULL)
+mqcpp <- function(edges, gamma, n = NULL, ub = NULL)
 {
   ## Preprocessing
+  labels <- unique(c(edges))
+  if (is.null(n)) 
+  	n <- length(labels)
   n <- as.integer(n)
-  if (!all(edges %in% (1:n)))
-    edges <- matrix(match(edges, unique(edges)), ncol = 2)
+  if (!all(labels %in% (1:n)))
+    edges <- matrix(match(edges, labels), ncol = 2)
+  if (anyDuplicated(edges))
+    edges <- edges[!duplicated(edges),]
+  rmv <- which(edges[,1] == edges[,2])
+  if (length(rmv) > 0) edges <- edges[-rmv,]
+  flip <- which(edges[,1] > edges[,2])
+  if (length(flip) > 0) edges[flip,] <- edges[flip,2:1]
+  rm(rmv,flip)
   nedges <- nrow(edges)
   stopifnot(all(edges <= n))
   stopifnot(gamma > 0 && gamma <= 1)
@@ -21,103 +31,117 @@ mqcpp <- function(n, edges, gamma, ub = NULL)
     ub <- floor(.5 + .5 * sqrt(1 + 8 * nedges / gamma))
 
   ## Define objective
-  nvars <- ub + (n * ub) + choose(n,2) * ub
+  ny <- ub # number of quasi-clique (QC) indicator variables
+  nx <- n * ub # number of QC membership indicator variables for vertices
   npairs <- choose(n,2)
-  pairs <- combn(n, 2)
+  nw <- npairs * ub 
+  # number of QC membership indicator variables for pairs of vertices
+  nvars <- ny + nx + nw
+  pairs <- t(combn(n, 2))
   # indexing: y (ub-vector), x (ub x n matrix), w (ub x npairs)
-  obj <- numeric(nvars)
-  obj[1:ub] <- 1
+  objective <- numeric(nvars)
+  objective[1:ub] <- 1
 
   ## Define constraints
-  ncnstr <- c(n, ub * n, rep(ub * npairs, 3), ub, ub - 1)#, ub, ub * n, ub * npairs)
-  csumcnstr <- cumsum(ncnstr)
-  totcnstr <- tail(csumcnstr,1) #csumcnstr[10]
+  ncnstr <- c(n, nx, rep(nw, 3), ub, ub - 1)
+  totcnstr <- sum(ncnstr) #csumcnstr[10]
+  idxrow <- split(1:totcnstr, rep(1:7, ncnstr))
   A <- matrix(0, totcnstr, nvars) # each row = 1 constraint
-
+  count <- 1
+  
   ## Variable indices
-  idxy <- 1:ub
-  idxx <- matrix(seq(ub+1, ub*(n+1)), ub, n)
-  idxw <- matrix(seq(ub*(n+1)+1, nvars), ub, npairs)
-
+  y <- 1:ny
+  x <- matrix((ny+1):(ny+nx), ub, n)
+  w <- matrix((ny+nx+1):nvars, ub, npairs)
 
   # Constraints (4) in paper sum_1:ub (x_iv) = 1
+  Atmp <- matrix(0, n, nvars)
   for (v in 1:n)
-    A[v, idxx[,v]] <- 1
+    Atmp[v, x[,v]] <- 1
+  A[idxrow[[1]],] <- Atmp
 
   # Constraints (5) in paper x_iv - y_i <= 0 ## choose '<' for all inequality
-  idxrow <- (csumcnstr[1]+1):csumcnstr[2]
-  count <- 0
+  Atmp <- array(0, c(ub, n, nvars))
   for (i in 1:ub) {
     for (v in 1:n) {
-      count <- count + 1
-      A[idxrow[count], c(idxx[i,v], idxy[i])] <- c(1, -1)
+      Atmp[i,v, c(x[i,v], y[i])] <- c(1, -1)
     }}
+  dim(Atmp) <- c(ub * n, nvars)
+  A[idxrow[[2]],] <- Atmp
 
   # Constraints (6) x_iu + x_iv - w_iuv <= 1
-  idxrow <- (csumcnstr[2]+1):csumcnstr[3]
-  count <- 0
+  Atmp <- array(0, c(ub, npairs, nvars))
   for (i in 1:ub) {
-    for (u in 1:(n-1)){
-      for (v in (u+1):n) {
-        count <- count + 1
-        A[idxrow[count], c(idxx[i, u], idxx[i, v], idxw[i, which(pairs[1,] == u & pairs[2, ] == v)])] <- c(1, 1, -1)
-      }
+    for (uv in 1:npairs) {
+    	  u <- pairs[uv,1]
+    	  v <- pairs[uv,2]
+      Atmp[i, uv, c(x[i,u], x[i,v], w[i, uv])] <- c(1, 1, -1)
     }
   }
+  dim(Atmp) <- c(ub * npairs, nvars)
+  A[idxrow[[3]],] <- Atmp
 
   # Constraints (7) w_iuv <= x_iu
-  idxrow <- (csumcnstr[3]+1):csumcnstr[4]
-  count <- 0
-  for (i in 1:ub) {
-    for (u in 1:(n-1)){
-      for (v in (u+1):n) {
-        count <- count + 1
-        A[idxrow[count], c(idxx[i, u], idxw[i, which(pairs[1,] == u & pairs[2, ] == v)])] <- c(1, -1)
-      }
-    }
-  }
-
   # Constraints (8) w_iuv <= x_iv
-  idxrow <- (csumcnstr[4]+1):csumcnstr[5]
-  count <- 0
+  Atmp <- Btmp <- array(0, c(ub, npairs, nvars))
   for (i in 1:ub) {
-    for (u in 1:(n-1)){
-      for (v in (u+1):n) {
-        count <- count + 1
-        A[idxrow[count], c(idxx[i, v], idxw[i, which(pairs[1,] == u & pairs[2, ] == v)])] <- c(1, -1)
-      }
+    for (uv in 1:npairs) {
+    	  u <- pairs[uv,1]
+   	  v <- pairs[uv,2]
+      Atmp[i, uv, c(w[i,uv], x[i,u])] <- c(1, -1)
+      Btmp[i, uv, c(w[i,uv], x[i,v])] <- c(1, -1)
     }
   }
-
-
+  dim(Atmp) <- dim(Btmp) <- c(ub * npairs, nvars)
+  A[idxrow[[4]],] <- Atmp
+  A[idxrow[[5]],] <- Btmp
+  
   # Constraints (9) gamma * sum_{u<v} w_iuv - sum_{u<v, uv \in E} w_iuv <= 0
-  idxrow <- (csumcnstr[5]+1):csumcnstr[6]
+  Atmp <- matrix(0, ub, nvars)
+  edgeschar <- paste(edges[,1], edges[,2], sep = ".")
+  pairschar <- paste(pairs[,1], pairs[,2], sep = ".")
+  idxedges <- match(edgeschar, pairschar)
+  # browser()
   for (i in 1:ub) {
-    for (u in 1:(n-1)){
-      for (v in (u+1):n) {
-        A[idxrow[i], idxw[i, which(pairs[1,] == u & pairs[2, ] == v)]] <-
-          ifelse(sum(edges[,1] == u & edges[,2] == v) == 1, -1, gamma)
-      }
-    }
+    Atmp[i,w[i,]] <- gamma
+    Atmp[i,w[i,idxedges]] <- gamma - 1
   }
-
+  A[idxrow[[6]],] <- Atmp
+  
   # Constraints (10) y_i >= y_i+1 dual: y_i+1 - y_i <= 0
-  idxrow <- (csumcnstr[6]+1):csumcnstr[7]
+  Atmp <- matrix(0, ub-1,nvars)
   for (i in 1:(ub - 1)){
-    A[idxrow[i], c(idxy[i], idxy[i+1])] <- c(-1, 1)
+    Atmp[i, y[c(i,i+1)]] <- c(-1, 1)
   }
-
+  A[idxrow[[7]],] <- Atmp
+  
+  rm(Atmp, edgeschar, pairschar)
 
 
 
   ## Run GUROBI
-  model <- list(A = A, obj = obj,
+  model <- list(A = A, obj = objective,
                 modelsense = "min",
                 vtype = rep("B", nvars),
-                sense = c(rep('=', n), rep('<', (totcnstr-n))),
+                sense = rep(c("=", "<"), c(n, totcnstr-n)),
                 rhs = rep(c(1,0,1,0,0,0,0), ncnstr)
                 )
-  gurobi(model)
+  params <- list(OutputFlag = 0)
+  sol <- gurobi(model, params)
+  if (sol$status == "INFEASIBLE") {
+  	warning(sol$status)
+  	return(list(qc = NULL, nqc = NULL, dens = NULL))
+  }
+  y <- sol$x[y]
+  nqc <- sum(y) # number of quasi-cliques
+  x <- matrix(sol$x[x], ub, n)
+  idx <- arrayInd(which(x == 1), dim(x))
+  qc <- idx[,1] # integer vector indicating quasi-clique for each vertex
+  w <- matrix(sol$x[w], dim(w))
+  nedgeqc <- rowSums(w[1:nqc, idxedges, drop=FALSE])
+  nvertqc <- rowSums(x[1:nqc,, drop=FALSE]) 
+  dens <-  nedgeqc / choose(nvertqc,2) # quasi-clique density
+  list(qc = qc, nqc = nqc, dens = dens) 
 
 }
 
@@ -142,13 +166,21 @@ mqcpp <- function(n, edges, gamma, ub = NULL)
 # plot(g, main = "Coxeter Graph")
 #
 # g <- graph("Zachary") # Social network of friendships between 34 members of
-# #a karate club at a US university in the 1970s.
+# a karate club at a US university in the 1970s.
 # plot(g, main = "Zachary Graph")
-#
+
 # edges <- as_edgelist(g)
-# n <- nrow(edges)
+ # n <- nrow(edges)
 #
 # system.time(
-#   test <- mqcpp(n, edges, gamma = 0.4, ub = NULL)
+#   test <- mqcpp(n, edges, gamma = 0.3, ub = NULL)
 # )
 #
+
+
+## Example 2 (Melo et al, 2023)
+# edges <- matrix(c(1,2, 1,5, 2,3, 3,4, 3,5, 4,5, 5,6, 5,8, 5,9,
+  # 6,7, 7,8, 8,9), ncol = 2, byrow = TRUE)
+# plot(graph_from_edgelist(edges, FALSE))  
+# mqcpp(edges, gamma = .51)
+
