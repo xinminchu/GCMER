@@ -1,40 +1,19 @@
 # affiliation example
 
+# import functions from packages or local computer
 rm(list = ls())
 library(stringdist)
 require(quadprog)
 
-data.dir <- "C://Users//xinmi//GCMER//Affiliation//" #XC
+#source("C:/Users/xinmi/GCMER/R/distance.calc.R")
+source("C://Users//xinmi//GCMER//R//learn.metric.R")
+
+
+
+data.dir <- "D://Github//Data-Analytics-Lab-Prof.Degras//EntityResolution//MoreCode//data analysis//affiliation//" #XC
 aff <- read.csv(file.path(data.dir, "clean_affiliations_final.csv"))
 aff[1:30,]
 
-#source("C:/Users/xinmi/GCMER/R/distance.calc.R")
-source("C:/Users/xinmi/GCMER/R/learn.metric.R")
-
-
-
-# manually label the sampled 100 rows
-data.dir <- "C://Users//xinmi//GCMER//Affiliation//" #XC
-mapping.aff <- read.csv(file.path(data.dir, "affiliationstrings_mapping.csv"))
-
-# Label the whole affiliation dataset
-label <- integer(nrow(aff))
-count <- 1
-for(i in 1:nrow(aff)){
-  if(label[i] == 0){
-    label[i] <- count
-    mp <- intersect(mapping.aff[mapping.aff[, 1] == aff[i, 1], 2], aff[, 1])
-    idx <- which(aff[,1] %in% mp)
-    label[idx[idx > i]] <- count
-    count <- count + 1
-  }else{
-    i <- i + 1
-  }
-
-}
-length(label)
-
-length(unique(label))
 
 
 # wrap up
@@ -43,14 +22,15 @@ data <- aff
 method <- "lv"
 iters <- 100
 iter <- 1
+iter <- iter+1
 
-iter.learn.metric <- function(samplesize, data, label, method = "lv", iters = 500){
+iter.learn.metric <- function(samplesize, data, label, method = "lv", iters = 100){
   w <- matrix(, ncol = 2, nrow = iters)
   for(iter in 1: iters){
     idx <- sample(nrow(data), samplesize)
-    #block <- as.vector(data$label)
+    block <- as.vector(label[idx])
     ## Metric learning
-    samples <- data[idx, -c(1,2)]
+    samples <- data[idx, -1]
     n <- samplesize
     p <- ncol(samples)
     samples[is.na(samples)] <- ""
@@ -60,8 +40,6 @@ iter.learn.metric <- function(samplesize, data, label, method = "lv", iters = 50
     for(i in 1:p){
       sim.list[[i]] <- stringsimmatrix(samples[, i], method = method)
     }
-
-    block <- label[idx]
 
     sim.vec <- unlist(sim.list)
     sim.array <- array(sim.vec, dim = c(n, n, p))
@@ -75,89 +53,20 @@ iter.learn.metric <- function(samplesize, data, label, method = "lv", iters = 50
 
 }
 
-test <- iter.learn.metric(samplesize = 100, data = aff, label = label)
+system(
+  test <- iter.learn.metric(samplesize = 500, data = aff, label = label, iters = 1000)
+)
+
+
+
 # Error message:
 #Error in solve.QP(V, dvec, Amat, bvec, meq = 1) :
 #  matrix D in quadratic function is not positive definite!
 
+#Possible reason: sample size is too small!!!
 
 
 
-
-#####################################
-# Following is one run
-####################################
-
-sampled100 <- read.csv(file.path(data.dir, "labeled100.csv"))
-head(sampled100)
-
-names(sampled100)
-#[1] "ID"      "Name1"   "Name2"   "Name3"   "Street1" "Street2" "City"    "State"   "Zipcode" "Country"
-
-block <- as.vector(sampled100$label)
-## Metric learning
-sampled100 <- sampled100[, -c(1,2, ncol(sampled100))]
-n <- nrow(sampled100)
-p <- ncol(sampled100)
-sampled100[is.na(sampled100)] <- ""
-
-sim.sampled.aff <- vector("list", (ncol(sampled100)))
-
-for(i in 1:ncol(sampled100)){
-  sim.sampled.aff[[i]] <- stringsimmatrix(sampled100[, i], method = "lv")
-}
-
-
-# Inputs:
-# D:	array (n,n,p) (n = total number of records, p = number of features)
-# block: integer vector of length n (block indicator)
-
-# Output:
-# weights w
-# matrix D' such that objective = || D' w ||^2
-sim.vec <- unlist(sim.sampled.aff)
-sim.array <- array(sim.vec, dim = c(n, n, p))
-
-opt.metric <- learn.metric(sim.array, block)
-
-opt.metric$w
-
-
-opt.metric2 <- learn.metric2(sim.array, block)
-
-opt.metric2$w
-
-#[1] -0.154681141 -0.006114618  0.084726794 -0.354531724  0.780312799
-# 0.034014521  0.008176876 -0.481298880 0.037476091
-
-o <- order(opt.metric$w, decreasing = TRUE) #5 3 9 6 7 2 1 4 8
-names(sampled100)[o]
-#[1] "Street2" "Name3"   "Country" "City"    "State"   "Name2"   "Name1"   "Street1" "Zipcode"
-
-o <- order(opt.metric2$w, decreasing = TRUE) #1 9 4 2 3 5 6 7 8
-names(sampled100)[o]
-#[1] "Name1"   "Country" "Street1" "Name2"   "Name3"   "Street2" "City"    "State"   "Zipcode"
-
-# The 5th column is choosen
-names(sampled100)[5] # Street2 ?? not make sense
-sampled100[,5]
-
-# How about the sencond largest 3rd column?
-names(sampled100)[3] # Names3
-sampled100[,3]
-
-#By my guess before metric learning, I guess the important feature could be "Name1"
-names(sampled100)[1]
-opt.metric$w[1]
-
-# absolute value
-o <- order(abs(opt.metric$w), decreasing = TRUE) #5 8 4 1 3 9 6 7 2
-names(sampled100)[o]
-#[1] "Street2" "Zipcode" "Street1" "Name1"   "Name3"   "Country" "City"    "State"   "Name2"
-
-o <- order(abs(opt.metric2$w), decreasing = TRUE) #1 9 4 2 3 8 5 7 6
-names(sampled100)[o]
-#[1] "Name1"   "Country" "Street1" "Name2"   "Name3"   "Zipcode" "Street2" "State"   "City"
 
 
 ################
