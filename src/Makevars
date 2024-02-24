@@ -1,4 +1,4 @@
-CPPFILES = $(wildcard *.cpp GraphColoring/Source/*.cpp)
+CPPFILES = $(wildcard *.cpp)
 
 SOURCES = $(CPPFILES)
 

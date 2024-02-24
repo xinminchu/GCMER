@@ -10,6 +10,7 @@
 
 mqcpp <- function(edges, gamma, n = NULL, ub = NULL)
 {
+  stopifnot(require(gurobi))
   ## Preprocessing
   labels <- unique(c(edges))
   if (is.null(n)) 
@@ -144,43 +145,3 @@ mqcpp <- function(edges, gamma, n = NULL, ub = NULL)
   list(qc = qc, nqc = nqc, dens = dens) 
 
 }
-
-
-
-##########
-# Example
-##########
-# n <- 28
-# gamma <- 0.6
-# ub <- NULL
-#
-#
-#
-# library(igraph)
-# g <- graph("Frucht") # The Frucht Graph is the smallest cubical graph
-# #whose automorphism group consists only of the identity element.
-# #It has 12 vertices and 18 edges.
-# plot(g, main = "Frucht Graph")
-#
-# g <- graph("Coxeter") # A non-Hamiltonian cubic symmetric graph with 28 vertices and 42 edges.
-# plot(g, main = "Coxeter Graph")
-#
-# g <- graph("Zachary") # Social network of friendships between 34 members of
-# a karate club at a US university in the 1970s.
-# plot(g, main = "Zachary Graph")
-
-# edges <- as_edgelist(g)
- # n <- nrow(edges)
-#
-# system.time(
-#   test <- mqcpp(n, edges, gamma = 0.3, ub = NULL)
-# )
-#
-
-
-## Example 2 (Melo et al, 2023)
-# edges <- matrix(c(1,2, 1,5, 2,3, 3,4, 3,5, 4,5, 5,6, 5,8, 5,9,
-  # 6,7, 7,8, 8,9), ncol = 2, byrow = TRUE)
-# plot(graph_from_edgelist(edges, FALSE))  
-# mqcpp(edges, gamma = .51)
-
