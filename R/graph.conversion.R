@@ -13,27 +13,17 @@
 #######################################
 
 
-adjmat2list <- function(mat, threshold = mean(mat))
+adjmat2list <- function(x)
 {
-  stopifnot(is.matrix(mat))
-  #stopifnot(identical(rownames(mat), colnames(mat)))
-  stopifnot(is.numeric(mat[1]) || is.logical(mat[1]))
-  stopifnot(nrow(mat) == ncol(mat))
-  stopifnot(all(mat == t(mat)))
-
-  if (is.numeric(mat[1])) {
-    #stopifnot(all(mat %in% c(0, 1)))
-    if (!all(mat %in% c(0, 1))) mat <- (mat >= threshold)
-    #stopifnot(all(diag(mat) == 0))
-    if(!all(diag(mat) == 0)){
-      diag(mat) == 0
-    }
-    out <- apply(mat == 1, 2, which)
-  } else {
-    stopifnot(all(!diag(mat)))
-    out <- apply(mat, 2, which)
-  }
-  names(out) <- rownames(mat)
+  stopifnot(is.matrix(x))
+  stopifnot(nrow(x) == ncol(x))
+  stopifnot(all(x == t(x)))  
+  xnames <- rownames(x)
+  if (!is.logical(x)) 
+    x <- matrix(as.logical(x), nrow(x), ncol(x))
+  if (any(diag(x))) diag(x) <- FALSE
+  out <- apply(x, 2, which, simplify = FALSE)
+  names(out) <- xnames
   out
 }
 
@@ -69,38 +59,35 @@ adjlist2mat <- function(nbor)
 # to adjacency matrix
 ##########################################
 
-simtab2adjmat <- function(simtab, threshold=1){
-  g0 <- as.matrix(simtab)
-
-  n.nodes <- max(g0[,1:2])
-  g1 <- matrix(0, ncol = n.nodes, nrow = n.nodes)
-
-  for(i in 1:nrow(g0)){
-    g1[g0[i,1], g0[i,2]] <- g0[i,3]
+twocol2adjmat <- function(x, n = NULL) 
+{
+  stopifnot(is.matrix(x) && ncol(x) == 2)
+  if (is.character(x)) {
+  	xnames <- unique(c(x))
+    n <- length(xnames)
+  	out <- matrix(0L, n, n)
+  	rownames(out) <- colnames(out) <- xnames
+  } else {
+    n <- ifelse(is.null(n), length(unique(c(x))), 
+      as.integer(n))
+    out <- matrix(0L, n, n)
   }
-
-  if (!all(g1 %in% c(0, 1))) g1 <- (g1 >= threshold)
-  ## Convert graph to adjacency list in view of graph coloring
-  g1[g1!=t(g1)] <- 1
-
-  return(g1)
+  out[x] <- 1L
+  out[x[,2:1]] <- 1L
+  diag(x) <- 0L
+  return(out)
 }
+
 
 ##########################################
 # Function to convert adjacency matrix
-# to similarity table
+# to two-column matrix
 ##########################################
 
-adjmat2simtab <- function(mat, threshold = 0){
-  mat[mat<threshold] <- 0
-  temp <- which(mat != 0, arr.ind = TRUE)
-  simtab <- data.frame("From"=integer(nrow(temp)),
-                       "To"=integer(nrow(temp)),
-                       "Weight"=double(nrow(temp)))
-  simtab[,1:2] <- temp
-  simtab <- simtab[simtab[,1] < simtab[,2],]
-  simtab[, 3] <- rep(1, nrow(simtab))
-  return(simtab)
+adjmat2twocol <- function(x)
+{
+  stopifnot(is.matrix(x) && nrow(x) == ncol(x))
+  which(as.logical(x), TRUE)
 }
 
 
@@ -109,7 +96,7 @@ adjmat2simtab <- function(mat, threshold = 0){
 # to adjacency list
 #########################################
 
-simtab2adjlist <- function(simtab, threshold=0){
+twocol2adjlist <- function(simtab, threshold=0){
   #first column: start, second column: end, third: similarity
   stopifnot(ncol(simtab) == 3)
 
