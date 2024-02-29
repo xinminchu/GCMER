@@ -1,8 +1,8 @@
 
 ## Graph conversion functions between different representations
 
-# Graph Representation: adjacency matrix, adjacency list,
-# and three columns table (similarity table)
+# Graph Representation: adjacency (square) matrix, adjacency list,
+# and edge list (two-column matrix) 
 
 # Graph G(V, E): neighbors list for each vertex v --> N(v)
 
@@ -13,7 +13,7 @@
 #######################################
 
 
-adjmat2list <- function(x)
+adjmat2adjlist <- function(x)
 {
   stopifnot(is.matrix(x))
   stopifnot(nrow(x) == ncol(x))
@@ -33,83 +33,86 @@ adjmat2list <- function(x)
 # to adjacency matrix
 #####################################
 
-adjlist2mat <- function(nbor)
+adjlist2adjmat <- function(x)
 {
-  stopifnot(is.list(nbor))
-  nbor <- lapply(nbor, as.integer)
-  stopifnot(all(unlist(nbor) >= 1 & unlist(nbor) <= length(nbor)))
-  n <- length(nbor)
+  stopifnot(is.list(x))
+  u <- unique(unlist(x))
+  n <- length(x)
   out <- matrix(0L, n, n)
-  nnb <- sapply(nbor, length)
-  out[cbind(rep(1:n, nnb), unlist(nbor))] <- 1L
-  if (any(diag(out) == 1L))
-    stop("Invalid adjacency list: please remove any vertex from the list of its neighbors.")
-  if (!all(out == t(out)))
-    stop("Invalid adjacency list: please make sure that the",
-         "adjacency relationship is symmetric (if vertex A is",
-         "adjacent to vertex B, then vertex B must be adjacent",
-         "to vertex A).")
-  out
+  rownames(out) <- colnames(out) <- names(x)
+  for (i in 1:n) 
+  	out[i,x[[i]]] <- out[x[[i]],i] <- 1L
+  out	
 }
 
 
 
-##########################################
-# Function to convert similarity table
+################################
+# Function to convert edge list
 # to adjacency matrix
-##########################################
+################################
 
-twocol2adjmat <- function(x, n = NULL) 
+edges2adjmat <- function(x) 
 {
   stopifnot(is.matrix(x) && ncol(x) == 2)
-  if (is.character(x)) {
-  	xnames <- unique(c(x))
-    n <- length(xnames)
-  	out <- matrix(0L, n, n)
-  	rownames(out) <- colnames(out) <- xnames
-  } else {
-    n <- ifelse(is.null(n), length(unique(c(x))), 
-      as.integer(n))
-    out <- matrix(0L, n, n)
-  }
+  stopifnot(is.numeric(x) || is.character(x))
+  u <- unique(c(x))
+  n <- if (is.numeric(u)) max(u) else length(u)
+  out <- matrix(0L, n, n)
+  if (is.character(x))
+    rownames(out) <- colnames(out) <- u
   out[x] <- 1L
-  out[x[,2:1]] <- 1L
-  diag(x) <- 0L
-  return(out)
+  out <- out + t(out)
+  diag(out) <- 0L
+  out  
 }
 
 
-##########################################
+#######################################
 # Function to convert adjacency matrix
-# to two-column matrix
-##########################################
+# to edge list
+#######################################
 
-adjmat2twocol <- function(x)
+adjmat2edges <- function(x)
 {
   stopifnot(is.matrix(x) && nrow(x) == ncol(x))
+  x[lower.tri(x, TRUE)] <- 0
   which(as.logical(x), TRUE)
 }
 
 
-#########################################
-# Function to convert similarity table
+################################
+# Function to convert edge list 
 # to adjacency list
-#########################################
+################################
 
-twocol2adjlist <- function(simtab, threshold=0){
-  #first column: start, second column: end, third: similarity
-  stopifnot(ncol(simtab) == 3)
-
-  simtab[simtab[,3] < threshold,] <- NA
-  simtab <- simtab[!is.na(simtab[,1]),]
-  n.nodes <- max(simtab[,1:2])
-  nbor <- vector("list", n.nodes)
-  for(i in 1: n.nodes){
-    nbor[[i]] <- sort(unique(c(simtab[simtab[,1]==i, 2], simtab[simtab[,2]==i, 1])))
+edges2adjlist <- function(x)
+{
+  stopifnot(is.matrix(x) && ncol(x) == 2)
+  stopifnot(is.numeric(x) || is.character(x))
+  u <- unique(c(x))
+  n <- length(u)
+  out <- vector("list", n)
+  names(out) <- u
+  for (i in 1:n) {
+  	idx1 <- (x[,1] == u[i])
+  	idx2 <- (x[,2] == u[i])
+    vals <- c(x[idx1,2], x[idx2,1])
+    out[[i]] <- unique(vals)   
   }
-  #nbor[sapply(nbor, length) == 0] <- NULL # double check if appropriate
-  nbor
+  out
 }
+
+
+# ###############################
+# # Function to threshold matrix
+# ###############################
+
+# threshold.matrix <- function(x, thres)
+# {
+  
+	
+# }
 
 
 ##########
