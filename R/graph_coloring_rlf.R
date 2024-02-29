@@ -50,10 +50,15 @@ colored
 
 
 ## Wrapper function
-graph_coloring_rlf <- function(adjmat)
+graph_coloring_rlf <- function(graph)
 {
-if (is.list(adjmat)) adjmat <- adjlist2mat(adjmat)
-n <- NCOL(adjmat)
+stopifnot(is.list(graph) || is.matrix(graph))
+if (is.list(graph)) {
+	graph <- adjlist2adjmat(graph)
+} else if (ncol(graph) == 2) {
+	graph <- edges2adjmat(graph)
+}
+n <- NCOL(graph)
 if (n == 1) return(1L)
 color <- integer(n)
 current_color <- 0L
@@ -61,7 +66,7 @@ uncolored <- 1:n
 while (length(uncolored) > 0) {
 	current_color <- current_color + 1L
 	# cat("new color", current_color, "\n")
-	idx <- get_independent_set(adjmat[uncolored, uncolored])
+	idx <- get_independent_set(graph[uncolored, uncolored])
 	color[uncolored[idx]] <- current_color
 	uncolored <- uncolored[-idx]
 }	
