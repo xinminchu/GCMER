@@ -2,9 +2,9 @@ Package: GCMER
 Title: Graph Coloring Method for Entity Resolution
 Version: 0.0.0.9000
 Authors@R: 
-    c(person("David", "Degras-Valabregue", , "david.degras@umb.edu", role = "aut",
+    c(person("Xinmin", "Chu", , "Xinmin.Chu001@umb.edu", role = c("aut", "cre"),
            comment = c(ORCID = "YOUR-ORCID-ID")),
-    person("Xinmin", "Chu", , "Xinmin.Chu001@umb.edu", role = c("aut", "cre"),
+    person("David", "Degras-Valabregue", , "david.degras@umb.edu", role = "aut",
            comment = c(ORCID = "YOUR-ORCID-ID")),
     person(given = "Forest", family = "Fang", role = "aut",
            email = "forest.fang@outlook.com",
