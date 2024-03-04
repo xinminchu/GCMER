@@ -45,7 +45,7 @@ rand.index <- function(x, y = NULL) {
 
 
 ######################
-# General rand index
+# Adjusted rand index
 ######################
 
 # Formula: R_adj(C1, C2) = sum_i=1^K sum_j=1^L choose(m.ij, 2) - t3
@@ -71,7 +71,7 @@ adj.rand.index <- function(x, y){
 
 # Formula: FM(C1, C2) = n11 / sqrt((n11+n10)(n11+n01))
 
-Fowlks.Mallow.index <- function(x, y = NULL){
+Fowlkes.Mallow.index <- function(x, y = NULL){
   m <- if (is.null(y)) x else table(x, y)
   n <- sum(m)
   n11 <- sum(choose(m,2)) # sum_{i,j} C(m_ij, 2)
@@ -121,7 +121,7 @@ Jaccard.index <- function(x, y = NULL){
 
 
 ########################
-# Partition Diffference
+# Partition Difference
 ########################
 
 # Formula: PD(C1, C2) = n00
@@ -271,7 +271,7 @@ mutual.info <- function(C1, C2){
   norm.SG <- I / sqrt(H.C1 * H.C2) #normalized mutual information by Strehl & Ghosh (2002)
   norm.FJ <- 2 * I / (H.C1 + H.C2) #normalized mutual information by Fred & Jain (2003)
   VoI <- H.C1 + H.C2 - 2 * I # Variation of Information by Meila (2003)
-  return(data.frame("Mutual.Info" = I,
+  return(c("Mutual.Info" = I,
                     "Norm.Strehl.Ghosh" = norm.SG,
                     "Norm.Fred.Jain" = norm.FJ,
                     "Vari.Info" = VoI))
