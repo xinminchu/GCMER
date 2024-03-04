@@ -1,4 +1,22 @@
 
+
+# Function to create confusion matrix from two 
+# integer vectors representing clusterings or 
+# from their contingency table
+
+get.confusion <- function(x, y = NULL) {
+	contingency <- if (is.null(y)) x else table(x,y)
+	n <- sum(contingency)
+	n11 <- sum(choose(contingency,2))
+	n01 <- sum(choose(colSums(contingency),2)) - n11
+	n10 <- sum(choose(rowSums(contingency),2)) - n11
+	n00 <- choose(n,2) - n01 - n10 - n11
+	confusion <- matrix(c(n00,n10,n01,n11), 2, 2)
+	confusion
+}
+
+
+
 #######################################
 # Function to retrieve entity/clusters
 # from assignment vector
