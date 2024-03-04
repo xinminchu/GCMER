@@ -1,4 +1,33 @@
-exportPattern("^[[:alpha:]]+")
+export(
+"adj.rand.index",
+"adjlist2adjmat",
+"adjmat2adjlist",
+"adjmat2edges",
+"graph.coloring", 
+"chi2.coeff", 
+"edges2adjlist",
+"edges2adjmat",
+"F.measure",
+"Fowlkes.Mallow.index",
+"get.chromatic",
+"get.confusion", 
+"get.entity",
+"is.valid.coloring",
+"Jaccard.index",
+"learn.metric",
+"learn.metric2",
+"make.adj.mat",
+"make.er.graph",
+"make.graph.chrom",
+"Max.match",
+"Meila.Heckerman",
+"Mirkin.Metric",
+"mutual.info",
+"partition.diff",
+"rand.index",
+"Van.Dongen"
+)
+
 importFrom(Rcpp,sourceCpp)
 useDynLib(GCMER, .registration = TRUE)
 
