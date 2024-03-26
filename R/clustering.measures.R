@@ -102,9 +102,9 @@ Mirkin.Metric <- function(x, y = NULL){
 
 
 
-########################
+################
 # Jaccard Index
-#######################
+################
 
 # Formula: J(C1, C2) = n11 / (n11 + n10 + n01)
 
@@ -134,9 +134,42 @@ partition.diff <- function(x, y = NULL){
   csum <- colSums(m)
   n01 <- sum(choose(csum, 2)) - sum(choose(m, 2))
   n10 <- sum(choose(rsum, 2)) - sum(choose(m, 2))
-  choose(n, 2) - (n01 + n10 + n11)
+  n00 <- choose(n, 2) - (n01 + n10 + n11)
+  n00
 }
 
+
+
+#####################
+# True positive rate 
+#####################
+
+# Rows of 'x' (or 'x' itself if 'y' is NULL) 
+# should refer to the true partition
+
+TPR <- function(x, y = NULL) {
+  m <- if (is.null(y)) x else table(x, y)
+  rsum <- rowSums(m)
+  TP <- sum(choose(m, 2)) # true positive (n11)
+  P  <- sum(choose(rsum, 2)) # positive (n01 + n11)
+  TP / P
+}
+
+######################
+# False positive rate 
+######################
+
+# Rows of 'x' (or 'x' itself if 'y' is NULL) 
+# should refer to the true partition
+
+FPR <- function(x, y = NULL) {
+  m <- if (is.null(y)) x else table(x, y)
+  rsum <- rowSums(m)
+  csum <- colSums(m)
+  FP <- sum(choose(csum, 2)) - sum(choose(m, 2)) # false positive
+  N  <- choose(sum(m), 2) - sum(choose(rsum, 2)) # negative
+  FP / N
+}
 
 
 ###################################
@@ -177,6 +210,9 @@ F.measure <- function(x, y = NULL) {
 
 
 # Formula: MH(optC, C1) = (1/n) sum_1:k max_C1 \in optC m.ij
+
+# Rows of 'x' (or 'x' itself if 'y' is NULL) 
+# should refer to the true partition
 
 Meila.Heckerman <- function(x, y = NULL) {
   m <- if (is.null(y)) x else table(x, y)
