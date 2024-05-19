@@ -217,7 +217,7 @@ F.measure <- function(x, y = NULL) {
 Meila.Heckerman <- function(x, y = NULL) {
   m <- if (is.null(y)) x else table(x, y)
   n <- sum(m)
-  rmax <- apply(m, 1, max)
+  rmax <- apply(m, 2, max)
   sum(rmax) / n
 }
 
