@@ -10,7 +10,13 @@
 
 mqcpp <- function(edges, gamma, n = NULL, ub = NULL)
 {
-  stopifnot(require(gurobi))
+  # gurobi.flag <- require(gurobi)
+  gurobi.flag <- FALSE
+  highs.flag <- require(highs)
+  if (!(gurobi.flag | highs.flag))
+  	stop("Please install the GUROBI commercial solver (gurobi.com)",
+  		"or the 'highs' package from CRAN before using function 'mqcpp'.")
+  		
   ## Preprocessing
   labels <- unique(c(edges))
   if (is.null(n)) 
@@ -121,18 +127,36 @@ mqcpp <- function(edges, gamma, n = NULL, ub = NULL)
 
 
   ## Run GUROBI
-  model <- list(A = A, obj = objective,
-                modelsense = "min",
-                vtype = rep("B", nvars),
-                sense = rep(c("=", "<"), c(n, totcnstr-n)),
-                rhs = rep(c(1,0,1,0,0,0,0), ncnstr)
-                )
-  params <- list(OutputFlag = 0)
-  sol <- gurobi(model, params)
-  if (sol$status == "INFEASIBLE") {
-  	warning(sol$status)
-  	return(list(qc = NULL, nqc = NULL, dens = NULL))
+  if (gurobi.flag) {
+	  model <- list(A = A, obj = objective,
+	                modelsense = "min",
+	                vtype = rep("B", nvars),
+	                sense = rep(c("=", "<"), c(n, totcnstr-n)),
+	                rhs = rep(c(1,0,1,0,0,0,0), ncnstr)
+	                )
+	  params <- list(OutputFlag = 0)
+	  sol <- gurobi(model, params)
+	  if (sol$status == "INFEASIBLE") {
+	  	warning(sol$status)
+	  	return(list(qc = NULL, nqc = NULL, dens = NULL))
+	  }
+  } else {
+  ## Run 'highs'	
+	  sol <- highs_solve(L = objective, A = A, 
+		lower = rep(0, nvars), upper = rep(1, nvars), 
+		types = rep("I", nvars),	
+		lhs = c(rep(1,n), rep(-Inf,totcnstr-n)),
+		rhs = model$rhs)
+	  if (sol$status_message != "Optimal") {
+	  	warning(sol$status_message)
+	  	return(list(qc = NULL, nqc = NULL, dens = NULL))	  	
+	  }
+  	  names_ <- names(sol)
+  	  names_[names_ == "primal_solution"] <- "x"
+  	  names(sol) <- names_
   }
+  
+  ## Format output
   y <- sol$x[y]
   nqc <- sum(y) # number of quasi-cliques
   x <- matrix(sol$x[x], ub, n)
@@ -143,5 +167,5 @@ mqcpp <- function(edges, gamma, n = NULL, ub = NULL)
   nvertqc <- rowSums(x[1:nqc,, drop=FALSE]) 
   dens <-  nedgeqc / choose(nvertqc,2) # quasi-clique density
   list(qc = qc, nqc = nqc, dens = dens) 
-
+  	
 }
