@@ -18,6 +18,7 @@ Encoding: UTF-8
 LazyData: true
 LinkingTo: Rcpp
 Imports: Rcpp, cora
+Suggests: highs
 SystemRequirements: GNU make
 NeedsCompilation: yes
 Roxygen: list(markdown = TRUE)
