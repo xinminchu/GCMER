@@ -274,6 +274,3 @@ map<string,int> GraphColoring::Lmxrlf::color() {
     }
     return lmxrlf_alg(this->condition);
 }
-
-
- 
