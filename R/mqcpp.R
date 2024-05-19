@@ -10,8 +10,7 @@
 
 mqcpp <- function(edges, gamma, n = NULL, ub = NULL)
 {
-  # gurobi.flag <- require(gurobi)
-  gurobi.flag <- FALSE
+  gurobi.flag <- require(gurobi)
   highs.flag <- require(highs)
   if (!(gurobi.flag | highs.flag))
   	stop("Please install the GUROBI commercial solver (gurobi.com)",
@@ -108,7 +107,7 @@ mqcpp <- function(edges, gamma, n = NULL, ub = NULL)
   edgeschar <- paste(edges[,1], edges[,2], sep = ".")
   pairschar <- paste(pairs[,1], pairs[,2], sep = ".")
   idxedges <- match(edgeschar, pairschar)
-  # browser()
+
   for (i in 1:ub) {
     Atmp[i,w[i,]] <- gamma
     Atmp[i,w[i,idxedges]] <- gamma - 1
