@@ -23,6 +23,7 @@ export(
 "Max.match",
 "Meila.Heckerman",
 "Mirkin.Metric",
+"mqcpp",
 "mutual.info",
 "partition.diff",
 "rand.index",
