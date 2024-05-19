@@ -145,7 +145,7 @@ mqcpp <- function(edges, gamma, n = NULL, ub = NULL)
 		lower = rep(0, nvars), upper = rep(1, nvars), 
 		types = rep("I", nvars),	
 		lhs = c(rep(1,n), rep(-Inf,totcnstr-n)),
-		rhs = model$rhs)
+		rhs = rep(c(1,0,1,0,0,0,0), ncnstr))
 	  if (sol$status_message != "Optimal") {
 	  	warning(sol$status_message)
 	  	return(list(qc = NULL, nqc = NULL, dens = NULL))	  	
