@@ -78,7 +78,7 @@ adj.rand.index <- function(x, y = NULL) {
 Fowlkes.Mallow.index <- function(x, y = NULL) {
   tab <- if (is.null(y)) x else table(x, y)
   n <- sum(tab)
-  n11 <- sum(choose(tab,2)) # sum_{i,j} C(m_ij, 2)
+  n11 <- sum(choose(tab,2)) 
   rsum <- rowSums(tab)
   csum <- colSums(tab)
   n01 <- sum(choose(csum, 2)) - sum(choose(tab, 2))
@@ -95,13 +95,13 @@ Fowlkes.Mallow.index <- function(x, y = NULL) {
 # Formula: M(C1, C2) = sum |C1.i|^2 + sum |C2.j|^2 - 2 sum sum m.ij^2
 # = 2(n01+n10) = n(n-1) (1-R(C1, C2))
 
-Mirkin.Metric <- function(x, y = NULL){
+Mirkin.Metric <- function(x, y = NULL) {
   tab <- if (is.null(y)) x else table(x, y)
   rsum <- rowSums(tab)
   csum <- colSums(tab)
   n01 <- sum(choose(csum, 2)) - sum(choose(tab, 2))
   n10 <- sum(choose(rsum, 2)) - sum(choose(tab, 2))
-  2*(n10 + n01)
+  2 * (n10 + n01)
 }
 
 
@@ -148,14 +148,14 @@ partition.diff <- function(x, y = NULL) {
 # True positive rate 
 #####################
 
-# Rows of 'x' (or 'x' itself if 'y' is NULL) 
+# 'y' (or columns of 'x' if 'y' is NULL) 
 # should refer to the true partition
 
 TPR <- function(x, y = NULL) {
   tab <- if (is.null(y)) x else table(x, y)
-  rsum <- rowSums(tab)
+  csum <- colSums(tab)
   TP <- sum(choose(tab, 2)) # true positive (n11)
-  P  <- sum(choose(rsum, 2)) # positive (n01 + n11)
+  P  <- sum(choose(csum, 2)) # positive (n01 + n11)
   TP / P
 }
 
@@ -163,15 +163,15 @@ TPR <- function(x, y = NULL) {
 # False positive rate 
 ######################
 
-# Rows of 'x' (or 'x' itself if 'y' is NULL) 
+# 'y' (or columns of 'x' if 'y' is NULL) 
 # should refer to the true partition
 
 FPR <- function(x, y = NULL) {
   tab <- if (is.null(y)) x else table(x, y)
   rsum <- rowSums(tab)
   csum <- colSums(tab)
-  FP <- sum(choose(csum, 2)) - sum(choose(tab, 2)) # false positive
-  N  <- choose(sum(tab), 2) - sum(choose(rsum, 2)) # negative
+  FP <- sum(choose(rsum, 2)) - sum(choose(tab, 2)) # false positive
+  N  <- choose(sum(tab), 2) - sum(choose(csum, 2)) # negative
   FP / N
 }
 
@@ -180,14 +180,15 @@ FPR <- function(x, y = NULL) {
 ### Measures based on Set Overlaps
 ###################################
 
-#######################
-# F measures
-#######################
+############
+# F measure
+############
 
 # F(C1, C2) = F(C2) = (1/n) sum_1:K ni max_1:L F(C1i, C2j)
-# F(C1i, C2j) = 2 * r.ij * p.ij / (r.ij + p.ij) = 2|C1i||C2j| / (|C1i| + |C2j|) #this is wrong
 # F(C1i, C2j) = 2 * r.ij * p.ij / (r.ij + p.ij) = 2 m / (|C1i| + |C2j|)
 
+# 'y' (or columns of 'x' if 'y' is NULL) 
+# should refer to the true partition
 
 F.measure <- function(x, y = NULL) {
   tab <- if (is.null(y)) x else table(x, y)
@@ -196,8 +197,8 @@ F.measure <- function(x, y = NULL) {
   csum <- colSums(tab)
   nr <- nrow(tab)
   nc <- ncol(tab)
-  den <- rep(rsum, nc) + rep(csum, each = nr)
-  Fmat <- 2 * m / den
+  den <- outer(rsum, csum, "+")
+  Fmat <- 2 * tab / den
   sum(rsum * apply(Fmat, 1, max)) / n
 }
 
@@ -213,38 +214,37 @@ F.measure <- function(x, y = NULL) {
 # model-based agglomerative clustering (AC) (e.g. Banfield, Raftery, 1993)
 
 
-# Formula: MH(optC, C1) = (1/n) sum_1:k max_C1 \in optC m.ij
+# Formula: MH(C1, optC) = (1/n) sum_(i=1:k) max_j m.ij
 
-# Rows of 'x' (or 'x' itself if 'y' is NULL) 
+# 'y' (or columns of 'x' if 'y' is NULL) 
 # should refer to the true partition
 
 Meila.Heckerman <- function(x, y = NULL) {
   tab <- if (is.null(y)) x else table(x, y)
   n <- sum(tab)
-  rmax <- apply(tab, 2, max)
+  rmax <- apply(tab, 1, max)
   sum(rmax) / n
 }
 
 
 ########################
-# Maximum-Match-measure
+# Maximum-Match measure
 ########################
 
-# Formula: MH(optC, C1) = (1/n) sum_i=1:min(k,l) m.ii'
 
 Max.match <- function(x, y = NULL) {
   tab <- if (is.null(y)) x else table(x, y)
-  n <- length(x)
+  n <- sum(tab)
   out <- 0
   nr <- nrow(tab)
   nc <- ncol(tab)
   for (i in 1:min(nr,nc)) {
     idx <- arrayInd(which.max(tab), c(nr, nc))
     out <- out + tab[idx[1], idx[2]]
-    tab[idx[1],] <- 0
-    tab[,idx[2]] <- 0
+    tab[idx[1],] <- NA
+    tab[,idx[2]] <- NA
   }
-  out
+  out / n
 }
 
 
@@ -254,12 +254,12 @@ Max.match <- function(x, y = NULL) {
 
 # Formula: D(C1, C2) = 2n - sum_i=1:k max_j m.ij - sum_j=1:l max_i m.ij
 
-Van.Dongen <- function(C1, C2) {
-  x <- sapply(1:n, function(i) which(sapply(1:K, function(k) i %in% C1[[k]]) == TRUE))
-  y <- sapply(1:n, function(i) which(sapply(1:L, function(l) i %in% C2[[l]]) == TRUE))
-  m <- table(x, y)
+Van.Dongen <- function(x, y) {
+  tab <- if (is.null(y)) x else table(x, y)
   n <- sum(tab)
-  2 * n - sum(apply(m, 2, max)) - sum(apply(m, 1, max))
+  rmax <- apply(tab, 1, max)
+  cmax <- apply(tab, 2, max)
+  2 * n - sum(rmax) - sum(cmax)
 }
 
 
