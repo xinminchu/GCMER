@@ -18,10 +18,10 @@
 # OR 'x' can be a contingency table with 'y' being NULL
 
 chi2.coeff <- function(x, y = NULL) {
-  m <- if (is.null(y)) x else table(x, y) # contingency table
-  n <- sum(m) # number of elements
-  rsum <- rowSums(m)
-  csum <- colSums(m)
+  tab <- if (is.null(y)) x else table(x, y) # contingency table
+  n <- sum(tab) # number of elements
+  rsum <- rowSums(tab)
+  csum <- colSums(tab)
   E <- tcrossprod(rsum, csum) / n # expected counts
   sum((m-E)^2 / E)
 }
@@ -29,17 +29,17 @@ chi2.coeff <- function(x, y = NULL) {
 
 
 ######################
-# General rand index
+# General Rand index
 ######################
 
 # Formula: R(C1, C2) = 2(n11+n00) / n(n-1)
 
 rand.index <- function(x, y = NULL) {
-  m <- if (is.null(y)) x else table(x, y)
-  n <- sum(m)
-  rsum <- rowSums(m)
-  csum <- colSums(m)
-  1 - (sum(rsum^2) + sum(csum^2) - 2*sum(m^2)) / (n*(n-1))
+  tab <- if (is.null(y)) x else table(x, y)
+  n <- sum(tab)
+  rsum <- rowSums(tab)
+  csum <- colSums(tab)
+  1 - (sum(rsum^2) + sum(csum^2) - 2*sum(tab^2)) / (n*(n-1))
 }
 
 
@@ -48,18 +48,22 @@ rand.index <- function(x, y = NULL) {
 # Adjusted rand index
 ######################
 
-# Formula: R_adj(C1, C2) = sum_i=1^K sum_j=1^L choose(m.ij, 2) - t3
+# Formula: R_adj(C1, C2) = sum_i=1^K sum_j=1^L choose(tab.ij, 2) - t3
 # t1 = sum choose(|C1|, 2), t2 = sum choose(|C2|, 2)
 # t3 = 2*t1*t2 / n(n-1)
 
 
-adj.rand.index <- function(x, y){
-  m <- table(x, y)
-  n <- sum(m)
-  t1 <- sum(choose(x, 2))
-  t2 <- sum(choose(y, 2))
-  t3 <- 2*t1*t2 / (n*(n-1))
-  (sum(choose(m, 2)) - t3) / (((t1 + t2) / 2) - t3)
+adj.rand.index <- function(x, y = NULL) {
+  tab <- if (is.null(y)) x else table(x, y)
+  n <- sum(tab)
+  rsum <- rowSums(tab)
+  csum <- colSums(tab)
+  t1 <- sum(choose(rsum, 2))
+  t2 <- sum(choose(csum, 2))
+  t3 <- t1 * t2 / choose(n, 2)
+  num <- sum(choose(tab, 2)) - t3
+  den <- (t1 + t2) / 2 - t3
+  num / den
 }
 
 
@@ -71,14 +75,14 @@ adj.rand.index <- function(x, y){
 
 # Formula: FM(C1, C2) = n11 / sqrt((n11+n10)(n11+n01))
 
-Fowlkes.Mallow.index <- function(x, y = NULL){
-  m <- if (is.null(y)) x else table(x, y)
-  n <- sum(m)
-  n11 <- sum(choose(m,2)) # sum_{i,j} C(m_ij, 2)
-  rsum <- rowSums(m)
-  csum <- colSums(m)
-  n01 <- sum(choose(csum, 2)) - sum(choose(m, 2))
-  n10 <- sum(choose(rsum, 2)) - sum(choose(m, 2))
+Fowlkes.Mallow.index <- function(x, y = NULL) {
+  tab <- if (is.null(y)) x else table(x, y)
+  n <- sum(tab)
+  n11 <- sum(choose(tab,2)) # sum_{i,j} C(m_ij, 2)
+  rsum <- rowSums(tab)
+  csum <- colSums(tab)
+  n01 <- sum(choose(csum, 2)) - sum(choose(tab, 2))
+  n10 <- sum(choose(rsum, 2)) - sum(choose(tab, 2))
   n11 / sqrt((n11 + n10) * (n11 + n01))
 }
 
@@ -92,11 +96,11 @@ Fowlkes.Mallow.index <- function(x, y = NULL){
 # = 2(n01+n10) = n(n-1) (1-R(C1, C2))
 
 Mirkin.Metric <- function(x, y = NULL){
-  m <- if (is.null(y)) x else table(x, y)
-  rsum <- rowSums(m)
-  csum <- colSums(m)
-  n01 <- sum(choose(csum, 2)) - sum(choose(m, 2))
-  n10 <- sum(choose(rsum, 2)) - sum(choose(m, 2))
+  tab <- if (is.null(y)) x else table(x, y)
+  rsum <- rowSums(tab)
+  csum <- colSums(tab)
+  n01 <- sum(choose(csum, 2)) - sum(choose(tab, 2))
+  n10 <- sum(choose(rsum, 2)) - sum(choose(tab, 2))
   2*(n10 + n01)
 }
 
@@ -108,13 +112,13 @@ Mirkin.Metric <- function(x, y = NULL){
 
 # Formula: J(C1, C2) = n11 / (n11 + n10 + n01)
 
-Jaccard.index <- function(x, y = NULL){
-  m <- if (is.null(y)) x else table(x, y)
-  n11 <- sum(choose(m,2)) # sum_{i,j} C(m_ij, 2)
-  rsum <- rowSums(m)
-  csum <- colSums(m)
-  n01 <- sum(choose(csum, 2)) - sum(choose(m, 2))
-  n10 <- sum(choose(rsum, 2)) - sum(choose(m, 2))
+Jaccard.index <- function(x, y = NULL) {
+  tab <- if (is.null(y)) x else table(x, y)
+  n11 <- sum(choose(tab,2)) # sum_{i,j} C(m_ij, 2)
+  rsum <- rowSums(tab)
+  csum <- colSums(tab)
+  n01 <- sum(choose(csum, 2)) - sum(choose(tab, 2))
+  n10 <- sum(choose(rsum, 2)) - sum(choose(tab, 2))
   n11 / (n11 + n10 + n01)
 }
 
@@ -126,15 +130,15 @@ Jaccard.index <- function(x, y = NULL){
 
 # Formula: PD(C1, C2) = n00
 
-partition.diff <- function(x, y = NULL){
-  m <- if (is.null(y)) x else table(x, y)
-  n <- sum(m)
-  n11 <- sum(choose(m,2)) # sum_{i,j} C(m_ij, 2)
-  rsum <- rowSums(m)
-  csum <- colSums(m)
-  n01 <- sum(choose(csum, 2)) - sum(choose(m, 2))
-  n10 <- sum(choose(rsum, 2)) - sum(choose(m, 2))
-  n00 <- choose(n, 2) - (n01 + n10 + n11)
+partition.diff <- function(x, y = NULL) {
+  tab  <- if (is.null(y)) x else table(x, y)
+  n    <- sum(tab)
+  n11  <- sum(choose(tab,2)) # sum_{i,j} C(m_ij, 2)
+  rsum <- rowSums(tab)
+  csum <- colSums(tab)
+  n01  <- sum(choose(csum, 2)) - sum(choose(tab, 2))
+  n10  <- sum(choose(rsum, 2)) - sum(choose(tab, 2))
+  n00  <- choose(n, 2) - (n01 + n10 + n11)
   n00
 }
 
@@ -148,9 +152,9 @@ partition.diff <- function(x, y = NULL){
 # should refer to the true partition
 
 TPR <- function(x, y = NULL) {
-  m <- if (is.null(y)) x else table(x, y)
-  rsum <- rowSums(m)
-  TP <- sum(choose(m, 2)) # true positive (n11)
+  tab <- if (is.null(y)) x else table(x, y)
+  rsum <- rowSums(tab)
+  TP <- sum(choose(tab, 2)) # true positive (n11)
   P  <- sum(choose(rsum, 2)) # positive (n01 + n11)
   TP / P
 }
@@ -163,11 +167,11 @@ TPR <- function(x, y = NULL) {
 # should refer to the true partition
 
 FPR <- function(x, y = NULL) {
-  m <- if (is.null(y)) x else table(x, y)
-  rsum <- rowSums(m)
-  csum <- colSums(m)
-  FP <- sum(choose(csum, 2)) - sum(choose(m, 2)) # false positive
-  N  <- choose(sum(m), 2) - sum(choose(rsum, 2)) # negative
+  tab <- if (is.null(y)) x else table(x, y)
+  rsum <- rowSums(tab)
+  csum <- colSums(tab)
+  FP <- sum(choose(csum, 2)) - sum(choose(tab, 2)) # false positive
+  N  <- choose(sum(tab), 2) - sum(choose(rsum, 2)) # negative
   FP / N
 }
 
@@ -186,12 +190,12 @@ FPR <- function(x, y = NULL) {
 
 
 F.measure <- function(x, y = NULL) {
-  m <- if (is.null(y)) x else table(x, y)
-  n <- sum(m)
-  rsum <- rowSums(m)
-  csum <- colSums(m)
-  nr <- nrow(m)
-  nc <- ncol(m)
+  tab <- if (is.null(y)) x else table(x, y)
+  n <- sum(tab)
+  rsum <- rowSums(tab)
+  csum <- colSums(tab)
+  nr <- nrow(tab)
+  nc <- ncol(tab)
   den <- rep(rsum, nc) + rep(csum, each = nr)
   Fmat <- 2 * m / den
   sum(rsum * apply(Fmat, 1, max)) / n
@@ -204,7 +208,7 @@ F.measure <- function(x, y = NULL) {
 ######################
 
 # paper: Meila (2001): An experimental comparison of model-based clustering methods
-# Expectation-Maximization (EM) algorithm (Dempaster, Laird, Rubin, 1977)
+# Expectation-Maximization (EM) algorithm (Dempster, Laird, Rubin, 1977)
 # Classification EM (CEM) algorithm (Celeux, Govaert, 1992)
 # model-based agglomerative clustering (AC) (e.g. Banfield, Raftery, 1993)
 
@@ -215,9 +219,9 @@ F.measure <- function(x, y = NULL) {
 # should refer to the true partition
 
 Meila.Heckerman <- function(x, y = NULL) {
-  m <- if (is.null(y)) x else table(x, y)
-  n <- sum(m)
-  rmax <- apply(m, 2, max)
+  tab <- if (is.null(y)) x else table(x, y)
+  n <- sum(tab)
+  rmax <- apply(tab, 2, max)
   sum(rmax) / n
 }
 
@@ -229,16 +233,16 @@ Meila.Heckerman <- function(x, y = NULL) {
 # Formula: MH(optC, C1) = (1/n) sum_i=1:min(k,l) m.ii'
 
 Max.match <- function(x, y = NULL) {
-  m <- if (is.null(y)) x else table(x, y)
+  tab <- if (is.null(y)) x else table(x, y)
   n <- length(x)
   out <- 0
-  nr <- nrow(m)
-  nc <- ncol(m)
+  nr <- nrow(tab)
+  nc <- ncol(tab)
   for (i in 1:min(nr,nc)) {
-    idx <- arrayInd(which.max(m), c(nr, nc))
-    out <- out + m[idx[1], idx[2]]
-    m[idx[1],] <- 0
-    m[,idx[2]] <- 0
+    idx <- arrayInd(which.max(tab), c(nr, nc))
+    out <- out + tab[idx[1], idx[2]]
+    tab[idx[1],] <- 0
+    tab[,idx[2]] <- 0
   }
   out
 }
@@ -250,11 +254,11 @@ Max.match <- function(x, y = NULL) {
 
 # Formula: D(C1, C2) = 2n - sum_i=1:k max_j m.ij - sum_j=1:l max_i m.ij
 
-Van.Dongen <- function(C1, C2){
+Van.Dongen <- function(C1, C2) {
   x <- sapply(1:n, function(i) which(sapply(1:K, function(k) i %in% C1[[k]]) == TRUE))
   y <- sapply(1:n, function(i) which(sapply(1:L, function(l) i %in% C2[[l]]) == TRUE))
   m <- table(x, y)
-  n <- sum(m)
+  n <- sum(tab)
   2 * n - sum(apply(m, 2, max)) - sum(apply(m, 1, max))
 }
 
@@ -274,7 +278,7 @@ Van.Dongen <- function(C1, C2){
 
 
 # Function to get entropy for a clustering of set X (|X| = n)
-entropy.clst <- function(clustering){
+entropy.clst <- function(clustering) {
   n <- max(unlist(clustering))
   P.i <- sapply(clustering, length) / n
   H.clst <- - sum(P.i * log2(P.i))
@@ -285,7 +289,7 @@ entropy.clst <- function(clustering){
 # Formula: I(C1, C2) = sum_i=1:k sum_j=1:l P(i,j) log2 P(i,j) / (P(i)*P(j))
 # P(i,j) = |C1i \cap C2j| / n
 
-mutual.info <- function(C1, C2){
+mutual.info <- function(C1, C2) {
   H.C1 <- entropy.clst(C1)
   H.C2 <- entropy.clst(C2)
 
