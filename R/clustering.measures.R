@@ -277,42 +277,26 @@ Van.Dongen <- function(C1, C2) {
 # P(i) = |Ci| / n
 
 
-# Function to get entropy for a clustering of set X (|X| = n)
-entropy.clst <- function(clustering) {
-  n <- max(unlist(clustering))
-  P.i <- sapply(clustering, length) / n
-  H.clst <- - sum(P.i * log2(P.i))
-  return(H.clst)
-}
-
 # Mutual information
 # Formula: I(C1, C2) = sum_i=1:k sum_j=1:l P(i,j) log2 P(i,j) / (P(i)*P(j))
 # P(i,j) = |C1i \cap C2j| / n
 
-mutual.info <- function(C1, C2) {
-  H.C1 <- entropy.clst(C1)
-  H.C2 <- entropy.clst(C2)
-
-  p.i <- sapply(C1, length) / n
-  p.j <- sapply(C2, length) / n
-
-  p.ij <- I.ij <- matrix(0, nrow = length(C1), ncol = length(C2))
-  for(i in 1:length(C1)){
-    for(j in 1:length(C2)){
-      p.ij[i,j] <- length(intersect(C1[[i]], C2[[j]])) / n
-      if(p.ij[i,j] != 0){
-        I.ij[i,j] <- p.ij[i,j] * log2(p.ij[i,j] / (p.i[i]* p.j[j]))
-      }
-
-    }
+mutual.info <- function(x, y = NULL) {
+  tab <- if (is.null(y)) x else table(x, y)
+  n <- sum(tab)  
+  px <- rowSums(tab) / n 
+  py <- colSums(tab) / n
+  if (any(px == 0) || any(py == 0)) {
+  	tab <- tab[px > 0, py > 0, drop = FALSE]
+  	px <- px[px > 0]
+  	py <- py[py > 0]
   }
-  I <- sum(I.ij) # Mutual Information
-
-  norm.SG <- I / sqrt(H.C1 * H.C2) #normalized mutual information by Strehl & Ghosh (2002)
-  norm.FJ <- 2 * I / (H.C1 + H.C2) #normalized mutual information by Fred & Jain (2003)
-  VoI <- H.C1 + H.C2 - 2 * I # Variation of Information by Meila (2003)
-  return(c("Mutual.Info" = I,
-                    "Norm.Strehl.Ghosh" = norm.SG,
-                    "Norm.Fred.Jain" = norm.FJ,
-                    "Vari.Info" = VoI))
+  Hx <- - sum(px * log2(px)) 
+  Hy <- - sum(py * log2(py))
+  pxy <- tab / n 
+  I <- sum(pxy * log2(pxy / tcrossprod(px, py))) # mutual information (MI)
+  SG <- I / sqrt(Hx * Hy) #normalized MI by Strehl & Ghosh (2002)
+  FJ <- 2 * I / (Hx + Hy) #normalized MI by Fred & Jain (2003)
+  VI <- Hx + Hy - 2 * I # Variation of Information by Meila (2003)
+  c(MI = I, G = SG, FJ = FJ, VI = VI)
 }
