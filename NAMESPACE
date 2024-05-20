@@ -8,6 +8,7 @@ export(
 "edges2adjlist",
 "edges2adjmat",
 "F.measure",
+"find.connected.components",
 "Fowlkes.Mallow.index",
 "FPR",
 "get.chromatic",
@@ -27,6 +28,7 @@ export(
 "mutual.info",
 "partition.diff",
 "rand.index",
+"resolve.entities",
 "TPR",
 "Van.Dongen"
 )
