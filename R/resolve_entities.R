@@ -127,7 +127,7 @@ for (j in 1:nthres) {
 	}
 		
 	## Identify connected components
-	comps <- find.connected.components(graph)
+	comps <- find_connected_components(graph)
 	ncomps <- max(comps)		
 	
 	## Graph coloring on connected components
@@ -145,11 +145,11 @@ for (j in 1:nthres) {
 		## Take the complement of the component
 		compk <- !compk
 		diag(compk) <- FALSE
-		entsk <- graph.coloring(compk, 
+		entsk <- graph_coloring(compk, 
 			method = c("lf", "sl", "dsatur", "rlf", "msc"))
 
 		## Retain a coloring that use the least colors
-		ncolorsk <- apply(entsk, 2, get.chromatic)
+		ncolorsk <- apply(entsk, 2, get_chromatic)
 		entsk <- entsk[,which.min(ncolorsk)]
 		ncolorsk <- min(ncolorsk)
 		
