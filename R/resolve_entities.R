@@ -1,4 +1,5 @@
 resolve_entities <- function(D, thresholds, 
+	method = c("lf", "sl", "rlf"),
 	na.action = c("omit", "fail", "pass"))
 {
 ## Check inputs
@@ -18,6 +19,9 @@ if (na.action == "fail") {
 	test <- is.na(D) | is.nan(D)
 	if (any(test)) D[test] <- max(thresholds)
 }
+method <- match.arg(arg = method, 
+	choices = c("lf", "sl", "dsatur", "rlf", "msc", "lmxrlf", "tabu"),
+	several.ok = TRUE)
 
 ## Handle trivial cases
 if (length(D) == 0) 
@@ -71,7 +75,7 @@ graph <- NULL
 
 ## Loop over thresholds 
 for (j in 1:nthres) {
-
+	
 	## Coloring vector
 	coloring <- rep(NA, nrecs)
 	
@@ -145,8 +149,7 @@ for (j in 1:nthres) {
 		## Take the complement of the component
 		compk <- !compk
 		diag(compk) <- FALSE
-		entsk <- graph_coloring(compk, 
-			method = c("lf", "sl", "dsatur", "rlf", "msc"))
+		entsk <- graph_coloring(compk, method)
 
 		## Retain a coloring that use the least colors
 		ncolorsk <- apply(entsk, 2, get_chromatic)
