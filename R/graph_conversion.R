@@ -73,11 +73,10 @@ edges2adjmat <- function(x)
 # to edge list
 #######################################
 
-adjmat2edges <- function(x)
+adjmat2edges <- function(x) 
 {
   stopifnot(is.matrix(x) && nrow(x) == ncol(x))
-  x[lower.tri(x, TRUE)] <- 0
-  which(as.logical(x), TRUE)
+  which(x != 0 & upper.tri(x), TRUE)
 }
 
 
