@@ -53,7 +53,7 @@ chi2 <- function(x, y = NULL) {
   rsum <- rowSums(tab)
   csum <- colSums(tab)
   E <- tcrossprod(rsum, csum) / n # expected counts
-  sum((m-E)^2 / E)
+  sum((tab-E)^2 / E)
 }
 
 
